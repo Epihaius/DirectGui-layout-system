@@ -16,13 +16,9 @@ class GUI:
         self._showbase = showbase
         listener = DirectObject()
         listener.accept("window-event", self.__handle_window_event)
-        self._sizer = Sizer("vertical")
+        self.sizer = Sizer("vertical")
 
-    def add(self, *args, **kwargs):
-
-        self._sizer.add(*args, **kwargs)
-
-    def finalize(self):
+    def layout(self):
 
         self._showbase.graphicsEngine.render_frame()
         Widget.init_sizes()
@@ -30,7 +26,7 @@ class GUI:
         w = win_props.get_x_size()
         h = win_props.get_y_size()
         self._window_size = (w, h)
-        self._sizer.update((w, h))
+        self.sizer.update((w, h))
 
     def __handle_window_event(self, window):
 
@@ -44,7 +40,7 @@ class GUI:
             win_props.set_size(w, h)
             window.request_properties(win_props)
 
-            w_min, h_min = self._sizer.update_min_size()
+            w_min, h_min = self.sizer.update_min_size()
 
             if w < w_min:
                 w = w_min
@@ -52,4 +48,4 @@ class GUI:
             if h < h_min:
                 h = h_min
 
-            self._sizer.update((w, h))
+            self.sizer.update((w, h))

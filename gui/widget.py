@@ -114,9 +114,37 @@ class Widget:
         new_size = (w_new, h_new)
         sx, _, sz = self.dgui_obj.get_scale()
         l, r, b, t = self._bounds
-        r = l + w_new / sx
+
+        if self.dgui_obj.hascomponent("text0"):
+
+            text_node = self.dgui_obj.component("text0")
+
+            if text_node.align == TextNode.A_center:
+                l = -w_new / sx * .5
+                r = w_new / sx * .5
+            elif text_node.align == TextNode.A_right:
+                text_np = NodePath(text_node)
+                _, p = text_np.get_tight_bounds()
+                r = p[0]
+                l = r - w_new / sx
+            elif text_node.align == TextNode.A_left:
+                l = 0.
+                r = w_new / sx
+
+        else:
+
+            l = 0.
+            r = w_new / sx
+
         b = t - h_new / sz
-        self.dgui_obj["frameSize"] = (l, r, b, t)
+        self.dgui_obj["frameSize"] = self._bounds = (l, r, b, t)
+
+        if self.dgui_obj.hascomponent("popupMarker"):
+            marker = self.dgui_obj.component("popupMarker")
+            sx = marker.get_scale()[0]
+            b = self.dgui_obj["popupMarkerBorder"][0]
+            z = marker.get_pos()[2]
+            marker.set_pos(r - marker.getWidth() * .5 * sx - b, 0, z)
 
         if self._sizer:
             self._sizer.set_size(new_size)
