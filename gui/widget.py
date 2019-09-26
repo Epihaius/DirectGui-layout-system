@@ -8,31 +8,23 @@ from panda3d.core import *
 
 class Widget:
 
-    _uninitialized = []
-
-    @classmethod
-    def init_sizes(cls):
-
-        for widget in cls._uninitialized:
-            widget.init_size()
-
-        del cls._uninitialized[:]
-
     def __init__(self, dgui_obj, stretch_dir=""):
 
         self._type = "widget"
         self.dgui_obj = dgui_obj
         self._stretch_dir = stretch_dir  # "horizontal", "vertical", "both" or ""
-        self._uninitialized.append(self)
-        self._bounds = (0, 0, 0, 0)
-        self._size = self._default_size = self._min_size = (0, 0)
         self._sizer = None
         self._sizer_item = None
 
-    def init_size(self):
+        l1, r1, b1, t1 = self.dgui_obj.getBounds()
+        l2, r2, b2, t2 = self.dgui_obj.guiItem.getFrame()
+        l = min(l1, l2)
+        r = max(r1, r2)
+        b = min(b1, b2)
+        t = max(t1, t2)
+        self._bounds = l, r, b, t
 
         sx, _, sz = self.dgui_obj.get_scale()
-        self._bounds = l, r, b, t = self.dgui_obj.getBounds()
         w = (r - l) * sx
         h = (t - b) * sz
         self._size = self._default_size = self._min_size = (int(w), int(h))

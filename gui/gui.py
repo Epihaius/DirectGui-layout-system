@@ -20,8 +20,6 @@ class GUI:
 
     def layout(self):
 
-        self._showbase.graphicsEngine.render_frame()
-        Widget.init_sizes()
         win_props = self._showbase.win.get_properties()
         w = win_props.get_x_size()
         h = win_props.get_y_size()
