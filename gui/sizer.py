@@ -228,9 +228,6 @@ class Sizer:
 
         self._owner = owner
 
-        if owner and owner.get_type() == "widget":
-            self.set_default_size(owner.get_default_size())
-
     def get_owner(self):
 
         return self._owner

@@ -29,8 +29,8 @@ class MyApp:
 
         # add a horizontally stretching title bar
         title = "Panda3D: GUI layout example"
-        label = DirectLabel(parent=gui_root, text=title, frameSize=(-10, 10, -1., 1.5),
-            scale=20, borderWidth=(.3, .3), relief=DGG.SUNKEN)
+        label = DirectLabel(parent=gui_root, text=title, frameSize=(0, 0, -20, 30),
+            text_scale=20, borderWidth=(6, 6), relief=DGG.SUNKEN)
         widget = Widget(label, "horizontal")
         borders = (10, 10, 20, 10)
         gui.sizer.add(widget, expand=True, borders=borders)
@@ -45,21 +45,32 @@ class MyApp:
         borders = (0, 20, 0, 0)
         sizer.add(btn_sizer, borders=borders)
 
-        # add a couple of horizontally stretching buttons to the subsizer;
+        # add horizontally stretching buttons to the subsizer;
         # they will have the same width, determined by the initially largest button
         borders = (0, 0, 10, 0)
-        text = "My Button"
-        button = DirectButton(parent=gui_root, text=text, scale=20)
+        text = "Add button to frame"
+        button = DirectButton(parent=gui_root, text=text, text_scale=20,
+            borderWidth=(2, 2), command=self.__add_button)
         widget = Widget(button, "horizontal")
         btn_sizer.add(widget, expand=True, borders=borders)
-        text = "Add button to frame"
-        button = DirectButton(parent=gui_root, text=text, scale=20, command=self.__add_button)
+        text = "Add checkbutton to frame"
+        button = DirectButton(parent=gui_root, text=text, text_scale=20,
+            borderWidth=(2, 2), command=self.__add_checkbutton)
         widget = Widget(button, "horizontal")
-        btn_sizer.add(widget, expand=True)
-        # add vertical space with a fixed size
-        btn_sizer.add((0, 50))
-        text = "A third button"
-        button = DirectButton(parent=gui_root, text=text, scale=20)
+        btn_sizer.add(widget, expand=True, borders=borders)
+        text = "Add radiobuttons to frame"
+        button = DirectButton(parent=gui_root, text=text, text_scale=20,
+            borderWidth=(2, 2), command=self.__add_radiobuttons)
+        widget = Widget(button, "horizontal")
+        btn_sizer.add(widget, expand=True, borders=borders)
+        text = "Add menu to frame"
+        button = DirectButton(parent=gui_root, text=text, text_scale=20,
+            borderWidth=(2, 2), command=self.__add_menu)
+        widget = Widget(button, "horizontal")
+        btn_sizer.add(widget, expand=True, borders=borders)
+        text = "Add slider to frame"
+        button = DirectButton(parent=gui_root, text=text, text_scale=20,
+            borderWidth=(2, 2), command=self.__add_slider)
         widget = Widget(button, "horizontal")
         btn_sizer.add(widget, expand=True)
 
@@ -81,7 +92,7 @@ class MyApp:
         # add a horizontally stretching label with right-aligned text to the frame
         text = "right-aligned text"
         label = DirectLabel(parent=frame, text=text,
-            scale=20, text_align=TextNode.A_right)
+            text_scale=20, text_align=TextNode.A_right)
         widget = Widget(label, "horizontal")
         borders = (10, 10, 20, 10)
         frame_sizer.add(widget, expand=True, borders=borders)
@@ -92,7 +103,7 @@ class MyApp:
 
         # add a non-stretching, right-aligned button to the frame
         text = "Button in frame "
-        button = DirectButton(parent=frame, text=text, scale=20)
+        button = DirectButton(parent=frame, text=text, text_scale=20, borderWidth=(2, 2))
         widget = Widget(button)
         borders = (0, 10, 10, 20)
         frame_sizer.add(widget, alignment="right", borders=borders)
@@ -102,7 +113,7 @@ class MyApp:
         gui.sizer.add((0, 0), proportion=1.)
 
         # add a non-stretching input field, centered horizontally
-        field = DirectEntry(parent=gui_root, frameSize=(0, 10, -1, 1), scale=20, focus=1)
+        field = DirectEntry(parent=gui_root, text_scale=20, focus=1)
         widget = Widget(field)
         gui.sizer.add(widget, alignment="center_h")
 
@@ -112,8 +123,8 @@ class MyApp:
 
         # add a horizontally stretching status bar
         status_text = "GUI ready and awaiting input"
-        label = DirectLabel(parent=gui_root, text=status_text, text_pos=(1, -.5),
-            textMayChange=1, frameSize=(0, 1, -.5, .5), scale=20, text_align=TextNode.A_left)
+        label = DirectLabel(parent=gui_root, text=status_text, text_pos=(20, -10),
+            textMayChange=1, frameSize=(0, 0, -10, 10), text_scale=20, text_align=TextNode.A_left)
         widget = Widget(label, "horizontal")
         borders = (10, 10, 10, 20)
         gui.sizer.add(widget, expand=True, borders=borders)
@@ -127,10 +138,69 @@ class MyApp:
     def __add_button(self):
 
         text = "Another Button"
-        button = DirectButton(parent=self.frame, text=text, scale=20, borderWidth=(.3, .3))
+        button = DirectButton(parent=self.frame, text=text, text_scale=20, borderWidth=(6, 6))
         widget = Widget(button, "horizontal")
         borders = (10, 10, 10, 10)
         # add the button to the frame, below the right-aligned text label, using index=1
+        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+
+        # update the GUI layout
+        self.gui.layout()
+
+    def __add_checkbutton(self):
+
+        btn = DirectCheckButton(parent=self.frame, text="CheckButton",
+            scale=20, boxPlacement="right")
+        widget = Widget(btn, "horizontal")
+        borders = (10, 10, 10, 10)
+        # add the checkbutton to the frame, below the right-aligned text label, using index=1
+        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+
+        # update the GUI layout
+        self.gui.layout()
+
+    def __add_radiobuttons(self):
+
+        v = [0]
+        buttons = [
+            DirectRadioButton(parent=self.frame, text='RadioButton0', variable=v,
+                value=[0], boxPlacement="right", scale=20),
+            DirectRadioButton(parent=self.frame, text='RadioButton1', variable=v,
+                value=[1], boxPlacement="right", scale=20)
+        ]
+        borders = (10, 10, 10, 10)
+
+        for button in reversed(buttons):
+            widget = Widget(button, "horizontal")
+            # add the radiobuttons to the frame, below the right-aligned text label, using index=1
+            self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+            button.setOthers(buttons)
+
+        # update the GUI layout
+        self.gui.layout()
+
+    def __add_menu(self):
+
+        menu = DirectOptionMenu(parent=self.frame, text="options", scale=20,
+            borderWidth=(.3, .3), items=["item1","item2","item3"], initialitem=2,
+            frameSize=(0, .25, -.75, .75), highlightColor=(.65, .65, .65, 1.),
+            text_pos=(.5, -.25), popupMarkerBorder=(.6, 0.))
+        widget = Widget(menu, "horizontal")
+        borders = (10, 10, 10, 10)
+        # add the menu to the frame, below the right-aligned text label, using index=1
+        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+
+        # update the GUI layout
+        self.gui.layout()
+
+    def __add_slider(self):
+
+        slider = DirectSlider(parent=self.frame, range=(0,100), value=50,
+            pageSize=10, thumb_frameSize=(-10, 10, -15, 15),
+            frameSize=(0, 0, -15, 15), borderWidth=(3, 3))
+        widget = Widget(slider, "horizontal")
+        borders = (10, 10, 10, 10)
+        # add the slider to the frame, below the right-aligned text label, using index=1
         self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
 
         # update the GUI layout
