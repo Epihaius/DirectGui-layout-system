@@ -12,3 +12,8 @@ The provided main.py script produces the following layout:
 ![Layout at very small resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Layout%20at%20very%20small%20resolution.png)
 
 As you can see, even when the widgets no longer fit in the window, they are not scaled down to an unpractical small size (which is how DirectGui handles things), but text retains its size and therefore remains legible.
+
+Run scrolled_list.py to see how a DirectScrolledList can be controlled using this layout system:
+
+![Scrolled list at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20list%20at%20default%20resolution.png)
+![Scrolled list at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20list%20at%20reduced%20resolution.png)
