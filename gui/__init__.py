@@ -5,4 +5,4 @@
 
 from .gui import GUI
 from .sizer import Sizer
-from .widget import Widget, ScrolledListWidget
+from .widget import Widget, ScrolledListWidget, ScrolledFrameWidget

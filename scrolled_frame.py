@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 # Author: Epihaius
-# Date: 2019-09-23
+# Date: 2019-10-04
 #
 # This is a basic example of how to use the sizer-based GUI system.
+# It specifically showcases how to handle a DirectScrolledFrame.
 
 from panda3d.core import *
 from direct.showbase.ShowBase import ShowBase
@@ -63,14 +64,14 @@ class MyApp:
             borderWidth=(2, 2), command=self.__add_radiobuttons)
         widget = Widget(button, "horizontal")
         btn_sizer.add(widget, expand=True, borders=borders)
-        text = "Add menu to frame"
-        button = DirectButton(parent=gui_root, text=text, text_scale=20,
-            borderWidth=(2, 2), command=self.__add_menu)
-        widget = Widget(button, "horizontal")
-        btn_sizer.add(widget, expand=True, borders=borders)
         text = "Add slider to frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=20,
             borderWidth=(2, 2), command=self.__add_slider)
+        widget = Widget(button, "horizontal")
+        btn_sizer.add(widget, expand=True, borders=borders)
+        text = "Add sub-layout to frame"
+        button = DirectButton(parent=gui_root, text=text, text_scale=20,
+            borderWidth=(2, 2), command=self.__add_layout)
         widget = Widget(button, "horizontal")
         btn_sizer.add(widget, expand=True)
         # add vertical space with a fixed size
@@ -89,8 +90,7 @@ class MyApp:
         # add a frame stretching in both directions and taking up two thirds of
         # the available horizontal space (because of the ratio of the proportions
         # used for the frame and the stretching space that was previously added)
-        frame = self.__toggle_frame(update_layout=False)
-        frame_sizer = self.frame_sizer
+        self.__toggle_frame(update_layout=False)
 
         # add some vertically stretching space to the GUI, so that widgets added
         # after it will be pushed downwards
@@ -129,13 +129,15 @@ class MyApp:
             # add a frame stretching in both directions and taking up two thirds of
             # the available horizontal space (because of the ratio of the proportions
             # used for the frame and the stretching space that was previously added)
-            self.frame = frame = DirectFrame(parent=self.gui_root, frameColor=(.5, .6, .7, 1.))
-            self.frame_widget = widget = Widget(frame, "both")
+            frame = DirectScrolledFrame(parent=self.gui_root, manageScrollBars=True,
+                autoHideScrollBars=True, frameColor=(.5, .6, .7, 1.), scrollBarWidth=20,
+                borderWidth=(3, 3), relief=DGG.RIDGE)
+            self.frame_widget = widget = ScrolledFrameWidget(frame, "vertical", "both")
             self.frame_area_sizer.add(widget, expand=True, proportion=2.)
-
-            # assign a sizer to the frame to manage the layout of its child widgets
-            self.frame_sizer = frame_sizer = Sizer("vertical")
-            widget.set_sizer(self.frame_sizer)
+            self.frame = frame = frame.getCanvas()
+            # all child widgets of a scrolled frame need to be added to its canvas sizer
+            # in order to manage their layout
+            self.frame_sizer = frame_sizer = widget.canvas_sizer
 
             # add a horizontally stretching label with right-aligned text to the frame
             text = "right-aligned text"
@@ -171,8 +173,6 @@ class MyApp:
             # update the GUI layout
             self.gui.layout()
 
-        return frame
-
     def __add_button(self):
 
         if not self.has_frame:
@@ -184,7 +184,7 @@ class MyApp:
             self.gui.layout()
 
         button = DirectButton(parent=self.frame, text=("Feel free to remove me", "Goodbye!",
-            "Yeah I'm still here", "Nobody home"), borderWidth=(6, 6),
+            "Yeah I'm still here", "So useless"), borderWidth=(6, 6),
             text_scale=20, command=remove_button)
         widget = Widget(button, "horizontal")
         borders = (10, 10, 10, 10)
@@ -235,23 +235,6 @@ class MyApp:
         # update the GUI layout
         self.gui.layout()
 
-    def __add_menu(self):
-
-        if not self.has_frame:
-            return
-
-        menu = DirectOptionMenu(parent=self.frame, text="options", scale=20,
-            borderWidth=(.3, .3), items=["item1","item2","item3"], initialitem=2,
-            frameSize=(0, .25, -.75, .75), highlightColor=(.65, .65, .65, 1.),
-            text_pos=(.5, -.25), popupMarkerBorder=(.6, 0.))
-        widget = Widget(menu, "horizontal")
-        borders = (10, 10, 10, 10)
-        # add the menu to the frame, below the right-aligned text label, using index=1
-        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
-
-        # update the GUI layout
-        self.gui.layout()
-
     def __add_slider(self):
 
         if not self.has_frame:
@@ -264,6 +247,44 @@ class MyApp:
         borders = (10, 10, 10, 10)
         # add the slider to the frame, below the right-aligned text label, using index=1
         self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+
+        # update the GUI layout
+        self.gui.layout()
+
+    def __add_layout(self):
+
+        if not self.has_frame:
+            return
+
+        def remove_sizer():
+
+            self.frame_sizer.remove_item(subsizer.get_sizer_item(), destroy=True)
+            self.gui.layout()
+
+        # create a sizer to manage a sub-layout that can be as complex as desired
+        subsizer = Sizer("horizontal")
+        # add the sizer managing the sub-layout to the frame, below the right-aligned
+        # text label, using index=1
+        self.frame_sizer.add(subsizer, expand=True, index=1, borders=(10, 10, 10, 10))
+
+        # Build a sub-layout of any complexity
+
+        v_sizer = Sizer("vertical")
+        subsizer.add(v_sizer, expand=True)
+        button = DirectButton(parent=self.frame, text="Button", borderWidth=(6, 6),
+            text_scale=20)
+        widget = Widget(button, "horizontal")
+        v_sizer.add(widget, expand=True, borders=(0, 0, 10, 0))
+        button = DirectButton(parent=self.frame, text="Destroy sub-layout",
+            borderWidth=(6, 6), text_scale=20, text_wordwrap=5., command=remove_sizer)
+        widget = Widget(button, "horizontal")
+        v_sizer.add(widget, expand=True)
+        subsizer.add((0, 0), proportion=1.)
+        button = DirectButton(parent=self.frame, text="Centered button",
+            borderWidth=(6, 6), text_scale=20, text_wordwrap=5.)
+        widget = Widget(button, "horizontal")
+        subsizer.add(widget, alignment="center_v", proportion=1.)
+        subsizer.add((0, 0), proportion=1.)
 
         # update the GUI layout
         self.gui.layout()

@@ -4,6 +4,7 @@
 # Date: 2019-09-23
 #
 # This is a basic example of how to use the sizer-based GUI system.
+# It specifically showcases how to handle a DirectScrolledList.
 
 from panda3d.core import *
 from direct.showbase.ShowBase import ShowBase
@@ -102,7 +103,8 @@ class MyApp:
         # add a horizontally stretching status bar
         status_text = "GUI ready and awaiting input"
         label = DirectLabel(parent=gui_root, text=status_text, text_pos=(20, -10),
-            textMayChange=1, frameSize=(0, 0, -10, 10), text_scale=20, text_align=TextNode.A_left)
+            textMayChange=1, frameSize=(0, 0, -10, 10), text_scale=20,
+            text_align=TextNode.A_left)
         widget = Widget(label, "horizontal")
         borders = (10, 10, 10, 20)
         gui.sizer.add(widget, expand=True, borders=borders)
@@ -127,7 +129,7 @@ class MyApp:
             incButton_borderWidth=(4, 4),
 
             frameColor=(1., 0., 0., .5),
-            forceHeight=25  # item height
+            forceHeight=29  # item height
         )
 
         self.list_widget = list_widget = ScrolledListWidget(
@@ -146,11 +148,16 @@ class MyApp:
             borderWidth=(4, 4), relief=2, text_scale=20)
 
         self.b2 = b2 = DirectButton(text=("Feel free to remove me", "Goodbye!",
-            "Yeah I'm still here", "disabled"), borderWidth=(4, 4), relief=2,
+            "Yeah I'm still here", "Not now"), borderWidth=(4, 4), relief=2,
             text_scale=20, command=self.__remove_item)
 
         list_widget.add_item(b1)
         list_widget.add_item(b2)
+
+        checkbtn = DirectCheckButton(text="CheckButton",
+            text_scale=20, boxPlacement="right", borderWidth=(3, 3), indicator_text_scale=20,
+            indicator_text_pos=(0, 4), indicator_borderWidth=(2, 2), boxBorder=1)
+        list_widget.add_item(checkbtn)
 
         l1 = DirectLabel(text="Test1", text_scale=20)
         l2 = DirectLabel(text="Test2", text_scale=20)

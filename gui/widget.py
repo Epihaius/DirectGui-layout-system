@@ -6,9 +6,12 @@
 from panda3d.core import *
 from direct.gui.DirectGui import *
 from .sizer import Sizer
+from math import ceil
 
 
 class Widget:
+
+    _count = 0
 
     def __init__(self, dgui_obj, stretch_dir=""):
 
@@ -18,13 +21,18 @@ class Widget:
         self._sizer = None
         self._sizer_item = None
 
-        l, r, b, t = self._get_bounds(dgui_obj)
-        self._bounds = l, r, b, t
+        l, r, b, t = self._bounds = self._get_bounds(dgui_obj)
 
         sx, _, sz = dgui_obj.get_scale()
-        w = (r - l) * sx
-        h = (t - b) * sz
-        self._size = self._min_size = (int(w), int(h))
+        w = int((r - l) * sx)
+        h = int((t - b) * sz)
+        self._size = self._min_size = (w, h)
+
+        self.guiId = "widget_{}".format(Widget._count)
+        Widget._count += 1
+
+        # provide camelCase aliases for DirectGui-like method names
+        self.resetFrameSize = self.reset_frame_size
 
     def destroy(self):
 
@@ -38,6 +46,20 @@ class Widget:
         self._sizer_item = None
         self.dgui_obj.destroy()
         self.dgui_obj = None
+
+    def __getitem__(key):
+
+        if key == "guiId":
+            return self.guiId
+        elif key == "stretch_dir":
+            return self._stretch_dir
+
+    def __setitem__(self, key, value):
+
+        if key == "guiId":
+            self.guiId = value
+        elif key == "stretch_dir":
+            self._stretch_dir = value
 
     def get_type(self):
 
@@ -91,6 +113,10 @@ class Widget:
 
         return self._stretch_dir
 
+    def set_stretch_dir(self, stretch_dir):
+
+        self._stretch_dir = stretch_dir
+
     def get_min_size(self):
 
         return self._sizer.get_min_size() if self._sizer else self._min_size
@@ -103,8 +129,8 @@ class Widget:
 
         if self._sizer:
             self._sizer.set_min_size_stale()
-            self._sizer.update_min_size()
-            self._sizer.set_size(self._size)
+        elif self._sizer_item:
+            self._sizer_item.get_sizer().set_min_size_stale()
 
     def get_size(self):
 
@@ -125,21 +151,37 @@ class Widget:
         sx, _, sz = self.dgui_obj.get_scale()
         l, r, b, t = self._bounds
 
+        if self.dgui_obj["relief"] not in (None, DGG.FLAT):
+            border_w, border_h = self.dgui_obj["borderWidth"]
+        else:
+            border_w = border_h = 0
+
         if self.dgui_obj.hascomponent("text0"):
 
             text_node = self.dgui_obj.component("text0")
+            l_offset = r_offset = 0
+
+            if self.dgui_obj.hascomponent("indicator"):
+
+                l_b, r_b, b_b, t_b = self.dgui_obj.indicator.guiItem.getFrame()
+                offset = r_b - l_b
+
+                if self.dgui_obj["boxPlacement"] == "left":
+                    l_offset = offset
+                else:
+                    r_offset = offset
 
             if text_node.align == TextNode.A_center:
-                l = -w_new / sx * .5
-                r = w_new / sx * .5
+                l = (-w_new / sx - l_offset + r_offset) * .5
+                r = (w_new / sx - l_offset + r_offset) * .5
             elif text_node.align == TextNode.A_right:
                 text_np = NodePath(text_node)
                 _, p = text_np.get_tight_bounds()
-                r = p[0]
+                r = p[0] + border_w + r_offset
                 l = r - w_new / sx
             elif text_node.align == TextNode.A_left:
-                l = 0.
-                r = w_new / sx
+                l = -border_w - l_offset
+                r = l + w_new / sx
 
         else:
 
@@ -147,7 +189,16 @@ class Widget:
             r = w_new / sx
 
         b = t - h_new / sz
-        self.dgui_obj["frameSize"] = self._bounds = (l, r, b, t)
+
+        self._bounds = (l, r, b, t)
+
+        if self.dgui_obj.hascomponent("indicator"):
+            l += border_w
+            r -= border_w
+            b += border_h
+            t -= border_h
+
+        self.dgui_obj["frameSize"] = (l, r, b, t)
 
         if self.dgui_obj.hascomponent("popupMarker"):
             marker = self.dgui_obj.component("popupMarker")
@@ -162,6 +213,16 @@ class Widget:
         self._size = new_size
 
         return new_size
+
+    def reset_frame_size(self):
+
+        self.dgui_obj["frameSize"] = None
+        self.dgui_obj.resetFrameSize()
+        l, r, b, t = self._bounds = self._get_bounds(self.dgui_obj)
+        sx, _, sz = self.dgui_obj.get_scale()
+        w = int((r - l) * sx)
+        h = int((t - b) * sz)
+        self.set_min_size((w, h))
 
 
 class ScrolledListWidget(Widget):
@@ -201,44 +262,49 @@ class ScrolledListWidget(Widget):
         sizer.add(widget, expand=True, borders=borders)
         sizer.add((0, dgui_obj["forceHeight"]))
 
-        self._stretching_items = []
-        self._item_widths = {None: 0}
+        self._widgets = {}
+        self._item_sizer = Sizer("vertical")
 
-        # provide camelCase aliases for method names
+        # provide camelCase aliases for DirectGui-like method names
         self.addItem = self.add_item
         self.removeItem = self.remove_item
 
     def add_item(self, item, refresh=True, stretch=True):
 
+        w_min, h_min = self._item_sizer.get_min_size()
         self.dgui_obj.addItem(item, refresh)
-        item.reparent_to(self._item_root)
-
-        l, r, b, t = self._get_bounds(item)
-        w = (r - l) * item.get_scale()[0]
+        item_parent = self._item_root.attach_new_node("item_parent")
+        item.reparent_to(item_parent)
+        stretch_dir = "horizontal" if stretch else ""
+        widget = Widget(item, stretch_dir)
+        self._widgets[item] = widget
+        self._item_sizer.add(widget, expand=True, index=0)
+        max_width, _ = size = self._item_sizer.update_min_size()
+        self._item_sizer.update(size)
+        w, h = widget.get_size()
         w_ = int(w * .5)
-        max_width = max(self._item_widths.values())
-        self._item_widths[item] = w
+        l, r, b, t = item["frameSize"]
+        item["frameSize"] = (-w_, w_, b, t)
 
-        if stretch:
-            item["frameSize"] = (l, r, b, t)
-            self._stretching_items.append(item)
-
-        if w > max_width:
+        if max_width > w_min:
             self._item_root["frameSize"] = (-w_, w_, 0, 0)
             self._root_widget._bounds = (-w_, w_, 0, 0)
             self._root_widget.set_min_size((w, 0))
 
     def remove_item(self, item, refresh=True):
 
-        w = self._item_widths[item]
-        del self._item_widths[item]
-        max_width = max(self._item_widths.values())
-        w_ = int(max_width * .5)
+        item.get_parent().detach_node()
+        w_min, h_min = self._item_sizer.get_min_size()
+        widget = self._widgets[item]
+        sizer_item = widget.get_sizer_item()
+        widget.set_sizer_item(None)
+        del self._widgets[item]
+        self._item_sizer.remove_item(sizer_item)
+        max_width, _ = size = self._item_sizer.update_min_size()
+        self._item_sizer.update(size)
 
-        if item in self._stretching_items:
-            self._stretching_items.remove(item)
-
-        if w > max_width:
+        if w_min > max_width:
+            w_ = int(max_width * .5)
             self._item_root["frameSize"] = (-w_, w_, 0, 0)
             self._root_widget._bounds = (-w_, w_, 0, 0)
             self._root_widget.set_min_size((max_width, 0))
@@ -255,17 +321,77 @@ class ScrolledListWidget(Widget):
         w_ = w * .5
         self._item_root["frameSize"] = (-w_, w_, 0, 0)
         self._root_widget._bounds = (-w_, w_, 0, 0)
+        self._item_sizer.set_size((w, 0))
 
-        for item in self._stretching_items:
+        for item in self._widgets:
             l, r, b, t = item["frameSize"]
-            sx = item.get_scale()[0]
-            w_ = int(w * .5) / sx
-            l = -w_
-            r = w_
-            item["frameSize"] = (l, r, b, t)
+            sx, _, sz = item.get_scale()
+            w_ = int((r - l) * .5) / sx
+            item.get_parent().set_x(-w_ - l)
 
         item_height = self.dgui_obj["forceHeight"]
         self.dgui_obj["numItemsVisible"] = int((h - item_height * .5) // item_height)
         self.dgui_obj.refresh()
+
+        return new_size
+
+
+class ScrolledFrameWidget(Widget):
+
+    def __init__(self, dgui_obj, scroll_dir="", stretch_dir=""):
+
+        Widget.__init__(self, dgui_obj, stretch_dir)
+
+        self.scroll_dir = scroll_dir
+        self.canvas_sizer = Sizer("vertical")
+
+    def get_min_size(self):
+
+        w, h = self._min_size
+        bar_width = self.dgui_obj["scrollBarWidth"]
+        w_min = w if self.scroll_dir in ("", "horizontal") else w + bar_width
+        h_min = h if self.scroll_dir in ("", "vertical") else h + bar_width
+        self.canvas_sizer.set_default_size((0, 0))
+        w, h = self.canvas_sizer.update_min_size()
+        w += 0 if self.scroll_dir in ("", "horizontal") else bar_width
+        h += 0 if self.scroll_dir in ("", "vertical") else bar_width
+
+        if self.scroll_dir in ("", "vertical"):
+            w_min = max(w_min, w)
+        if self.scroll_dir in ("", "horizontal"):
+            h_min = max(h_min, h)
+
+        if self.dgui_obj["relief"] not in (None, DGG.FLAT):
+            border_w, border_h = self.dgui_obj["borderWidth"]
+            w_min += int(ceil(border_w * 2))
+            h_min += int(ceil(border_h * 2))
+
+        if self._sizer_item:
+            self._sizer_item.get_sizer().set_min_size_stale()
+
+        return (w_min, h_min)
+
+    def set_size(self, size):
+
+        w, h = new_size = Widget.set_size(self, size)
+
+        if self.dgui_obj["relief"] not in (None, DGG.FLAT):
+            border_w, border_h = self.dgui_obj["borderWidth"]
+            w -= int(ceil(border_w * 2))
+            h -= int(ceil(border_h * 2))
+
+        bar_width = self.dgui_obj["scrollBarWidth"]
+
+        if self.scroll_dir in ("both", "vertical"):
+            w -= bar_width
+
+        if self.scroll_dir in ("both", "horizontal"):
+            h -= bar_width
+
+        self.canvas_sizer.set_default_size((w, h))
+        min_size = self.canvas_sizer.get_min_size()
+        self.canvas_sizer.update(min_size)
+        w, h = self.canvas_sizer.get_size()
+        self.dgui_obj["canvasSize"] = (0, w, -h, 0)
 
         return new_size

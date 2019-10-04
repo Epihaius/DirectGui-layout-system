@@ -25,22 +25,15 @@ class SizerItem:
             outer_borders = borders
 
         l, r, b, t = self._borders = outer_borders
-
-        x = y = 0
+        self._obj_offset = (l, t)
 
         if obj_type == "size":
             w, h = obj
         else:
             w, h = obj.get_min_size()
 
-        w += l
-        x = l
-        w += r
-        h += t
-        y = t
-        h += b
-
-        self._obj_offset = (x, y)
+        w += l + r
+        h += b + t
         self._size = self._min_size = (w, h)
 
     def destroy(self):
@@ -58,6 +51,28 @@ class SizerItem:
         self._borders = (0, 0, 0, 0)
         self._obj_offset = (0, 0)
         self._size = self._min_size = (0, 0)
+
+    def __getitem__(key):
+
+        if key == "proportion":
+            return self._proportion
+        elif key == "expand":
+            return self._expand
+        elif key == "alignment":
+            return self._alignment
+        elif key == "borders":
+            return self._borders
+
+    def __setitem__(self, key, value):
+
+        if key == "proportion":
+            self._proportion = value
+        elif key == "expand":
+            self._expand = value
+        elif key == "alignment":
+            self._alignment = value
+        elif key == "borders":
+            self.set_borders(value)
 
     def get_sizer(self):
 
@@ -98,9 +113,23 @@ class SizerItem:
 
         return self._alignment
 
+    def set_alignment(self, alignment):
+
+        self._alignment = alignment
+
     def get_borders(self):
 
         return self._borders
+
+    def set_borders(self, borders):
+
+        if borders is None:
+            outer_borders = (0, 0, 0, 0)
+        else:
+            outer_borders = borders
+
+        l, r, b, t = self._borders = outer_borders
+        self._obj_offset = (l, t)
 
     def get_object_offset(self):
 
@@ -179,6 +208,8 @@ class SizerItem:
 
 class Sizer:
 
+    _count = 0
+
     def __init__(self, stretch_dir):
 
         self._type = "sizer"
@@ -198,6 +229,9 @@ class Sizer:
         self._size = (0, 0)
         self._items = []
 
+        self.guiId = "sizer_{}".format(Sizer._count)
+        Sizer._count += 1
+
     def destroy(self):
 
         for item in self._items:
@@ -215,6 +249,24 @@ class Sizer:
 
         self._items = []
         self.set_min_size_stale()
+
+    def __getitem__(key):
+
+        if key == "guiId":
+            return self.guiId
+        elif key == "stretch_dir":
+            return self._stretch_dir
+        elif key == "default_size":
+            return self._default_size
+
+    def __setitem__(self, key, value):
+
+        if key == "guiId":
+            self.guiId = value
+        elif key == "stretch_dir":
+            self._stretch_dir = value
+        elif key == "default_size":
+            self.set_default_size(value)
 
     def get_type(self):
 
@@ -345,6 +397,10 @@ class Sizer:
     def get_stretch_dir(self):
 
         return self._stretch_dir
+
+    def set_stretch_dir(self, stretch_dir):
+
+        self._stretch_dir = stretch_dir
 
     def get_default_size(self):
 
