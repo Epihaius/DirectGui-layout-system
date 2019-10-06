@@ -22,3 +22,8 @@ Run scrolled_frame.py to see how a DirectScrolledFrame can be controlled using t
 
 ![Scrolled frame at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20frame%20at%20default%20resolution.png)
 ![Scrolled frame at reduced resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20frame%20at%20reduced%20resolution.png)
+
+Run gridsizer.py to see the effect of a grid sizer:
+
+![Grid sizer at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Grid%20sizer%20at%20default%20resolution.png)
+![Grid sizer at very small resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Grid%20sizer%20at%20very%20small%20resolution.png)
