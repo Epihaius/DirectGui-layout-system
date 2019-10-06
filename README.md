@@ -16,4 +16,9 @@ As you can see, even when the widgets no longer fit in the window, they are not 
 Run scrolled_list.py to see how a DirectScrolledList can be controlled using this layout system:
 
 ![Scrolled list at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20list%20at%20default%20resolution.png)
-![Scrolled list at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20list%20at%20reduced%20resolution.png)
+![Scrolled list at reduced resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20list%20at%20reduced%20resolution.png)
+
+Run scrolled_frame.py to see how a DirectScrolledFrame can be controlled using this layout system:
+
+![Scrolled frame at default resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20frame%20at%20default%20resolution.png)
+![Scrolled frame at reduced resolution](https://github.com/Epihaius/DirectGui-layout-system/blob/master/Scrolled%20frame%20at%20reduced%20resolution.png)
