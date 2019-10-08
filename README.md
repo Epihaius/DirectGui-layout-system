@@ -1,4 +1,4 @@
-# DirectGui-layout-system
+# DirectGui layout system
 
 This is an automatic layout management system for Panda3D's DirectGui.
 It uses "sizers", a kind of abstract containers that can be filled in a certain direction with widgets, sizes (empty space) and other sizers, so they can be nested as deeply as needed.
