@@ -56,11 +56,11 @@ class MyApp:
         button = DirectButton(parent=gui_root, text="Item0", text_scale=20,
             borderWidth=(2, 2))
         widget = Widget(button)
-        sizer.add(widget, resize_h=True, resize_v=True)
+        sizer.add(widget, expand_h=True, expand_v=True)
         button = DirectButton(parent=gui_root, text="Item1", text_scale=20,
             borderWidth=(2, 2))
         widget = Widget(button)
-        sizer.add(widget, resize_h=True, proportion_v=1.)
+        sizer.add(widget, expand_h=True, proportion_v=1.)
         button = DirectButton(parent=gui_root, text="Item2", text_scale=20,
             borderWidth=(2, 2))
         widget = Widget(button)
@@ -74,7 +74,7 @@ class MyApp:
         button = DirectButton(parent=gui_root, text="Another item: Item3", text_scale=20,
             borderWidth=(2, 2))
         widget = Widget(button)
-        sizer.add(widget, resize_h=True, alignment_v="center_v")
+        sizer.add(widget, expand_h=True, alignment_v="center_v")
         button = DirectButton(parent=gui_root, text="Remove me", text_scale=20,
             borderWidth=(2, 2), command=remove_button)
         widget_to_remove = Widget(button)
