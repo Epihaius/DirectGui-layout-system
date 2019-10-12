@@ -635,10 +635,14 @@ class Sizer:
 class GridDataItem:
 
     def __init__(self, obj, proportion_h, proportion_v, expand_h, expand_v,
-                 alignment_h, alignment_v, borders):
+                 alignment_h, alignment_v, borders, sizer_item):
 
-        self._data = (obj, proportion_h, proportion_v, expand_h, expand_v,
-                      alignment_h, alignment_v, borders)
+        self._data = [obj, proportion_h, proportion_v, expand_h, expand_v,
+                      alignment_h, alignment_v, borders, sizer_item]
+
+    def set_sizer_item(self, sizer_item):
+
+        self._data[-1] = sizer_item
 
     def get_data(self):
 
@@ -717,7 +721,7 @@ class GridSizer(Sizer):
         column_sizer_item = column_sizer.sizer_item
         column_proportion = column_sizer_item.proportion
         # the column sizer should have the largest of the horizontal proportions that were passed
-        # for its items; all of its items that should resize proportionally in the horizontal
+        # for its items; all of its items that should resize proportionately in the horizontal
         # direction will end up with the same width, as if they were all given that same largest
         # proportion
         column_proportion = max(column_proportion, proportion)
@@ -735,11 +739,11 @@ class GridSizer(Sizer):
         # No proportion needs to be set for an outer cell sizer, since its default width will be
         # set to the width of the corresponding column sizer of the horizontal help sizer, after
         # that one has been resized.
-        # To resize the added object in the vertical direction, it needs to expand (the actual
+        # If expand_v is True or proportion_v is non-zero, the added object needs to expand (any
         # proportion applied to the object is the one set on the row sizer).
-        # To resize the added object in the horizontal direction, it needs a non-zero proportion
-        # (any value will do; the actual proportion applied to the object is the one set on the
-        # column sizer), while its inner cell sizer needs to expand.
+        # If expand_h is True or proportion_h is non-zero, the added object needs a non-zero
+        # proportion (any value will do; the actual proportion applied to the object is the one
+        # set on the column sizer), while its inner cell sizer needs to expand.
         # To align the added object vertically, it simply needs to have the desired alignment set.
         # To align the added object horizontally, its inner cell sizer needs to have the desired
         # alignment set.
@@ -771,7 +775,7 @@ class GridSizer(Sizer):
         row_sizer_item = row_sizer.sizer_item
         row_proportion = row_sizer_item.proportion
         # the row sizer should have the largest of the vertical proportions that were passed for
-        # its items; all of its items that should resize proportionally in the vertical direction
+        # its items; all of its items that should resize proportionately in the vertical direction
         # will end up with the same height, as if they were all given that same largest proportion
         row_proportion = max(row_proportion, proportion_v)
         row_sizer_item.proportion = row_proportion
@@ -790,7 +794,7 @@ class GridSizer(Sizer):
         return inner_cell_sizer.add(obj, proportion, expand, alignment_v, borders)
 
     def add(self, obj, proportion_h=0., proportion_v=0., expand_h=False, expand_v=False,
-            alignment_h="", alignment_v="", borders=None, rebuilding=False):
+            alignment_h="", alignment_v="", borders=None, _old_item=None):
 
         grow_dir = "vertical" if self._max_rows == 0 else "horizontal"
 
@@ -813,15 +817,17 @@ class GridSizer(Sizer):
         if item.type != "size":
             obj.sizer_item = item
 
-        if not rebuilding:
+        if _old_item:
+            index = self._items.index(_old_item)
+            self._items[index] = item
+            self._data_items[index].set_sizer_item(item)
+        else:
             self._items.append(item)
             self._data_items.append(GridDataItem(obj, proportion_h, proportion_v,
-                                                 expand_h, expand_v,
-                                                 alignment_h, alignment_v, borders))
+                                                 expand_h, expand_v, alignment_h,
+                                                 alignment_v, borders, item))
 
         Sizer.set_min_size_stale(self)
-
-        return item
 
     def rebuild(self):
 
@@ -844,7 +850,7 @@ class GridSizer(Sizer):
         self._sizers = {"horizontal": Sizer("horizontal"), "vertical": Sizer("vertical")}
 
         for item in self._data_items:
-            self.add(*item.get_data(), rebuilding=True)
+            self.add(*item.get_data())
 
     def add_item(self, item, index=None): pass
 
