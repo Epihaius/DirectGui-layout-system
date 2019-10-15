@@ -331,7 +331,7 @@ class ScrolledFrameWidget(Widget):
         bar_width = self.dgui_obj["scrollBarWidth"]
         w_min = w if self.scroll_dir in ("", "horizontal") else w + bar_width
         h_min = h if self.scroll_dir in ("", "vertical") else h + bar_width
-        self.canvas_sizer.set_default_size((0, 0))
+        self.canvas_sizer.default_size = (0, 0)
         w, h = self.canvas_sizer.update_min_size()
         w += 0 if self.scroll_dir in ("", "horizontal") else bar_width
         h += 0 if self.scroll_dir in ("", "vertical") else bar_width
@@ -368,7 +368,7 @@ class ScrolledFrameWidget(Widget):
         if self.scroll_dir in ("both", "horizontal"):
             h -= bar_width
 
-        self.canvas_sizer.set_default_size((w, h))
+        self.canvas_sizer.default_size = (w, h)
         min_size = self.canvas_sizer.min_size
         self.canvas_sizer.update(min_size)
         w, h = self.canvas_sizer.get_size()

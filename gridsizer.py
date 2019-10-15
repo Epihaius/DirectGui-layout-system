@@ -40,49 +40,102 @@ class MyApp:
         # expanded horizontally;
         # setting rows to 0 and columns to 3 will horizontally add up to 3 items
         # to the sizer; a new row will automatically be created when a 4th item
-        # is added; to add items vertically to a grid sizer, set the rows parameter
-        # to a non-zero number and columns to zero
+        # is added;
+        # to add items vertically to a grid sizer, set the rows parameter to a
+        # non-zero number and columns to zero
         sizer = GridSizer(rows=0, columns=3, gap_h=20, gap_v=10)
-        borders = (10, 10, 20, 10)
+        borders = (10, 10, 0, 0)
         gui.sizer.add(sizer, proportion=1., expand=True, borders=borders)
 
-        # add a first row of empty spaces, some of which are resized proportionately
-        # in the horizontal direction, to force those proportions onto the
-        # corresponding sizer columns
-        sizer.add((0, 0))
-        sizer.add((0, 0), proportion_h=2.)
-        sizer.add((0, 0), proportion_h=1.)
+        # set explicit horizontal proportions for some of the sizer columns
+        sizer.set_column_proportion(1, 2.)
+        sizer.set_column_proportion(2, 1.)
 
-        button = DirectButton(parent=gui_root, text="Item0", text_scale=20,
-            borderWidth=(2, 2))
+        def clear_proportions():
+
+            sizer.clear_proportions()
+            gui.layout()
+
+        text = "Clear explicit proportions"
+        button = DirectButton(parent=gui_root, text=text, text_wordwrap=6.,
+            text_scale=20, borderWidth=(2, 2), command=clear_proportions)
         widget = Widget(button)
         sizer.add(widget, expand_h=True, expand_v=True)
-        button = DirectButton(parent=gui_root, text="Item1", text_scale=20,
-            borderWidth=(2, 2))
+
+        def toggle_column1_proportion():
+
+            if sizer.has_column_proportion(1):
+                sizer.clear_column_proportion(1)
+            else:
+                sizer.set_column_proportion(1, 2.)
+
+            gui.layout()
+
+        text = "Toggle explicit column proportion"
+        button = DirectButton(parent=gui_root, text=text, text_wordwrap=5.,
+            text_scale=20, borderWidth=(2, 2), command=toggle_column1_proportion)
         widget = Widget(button)
         sizer.add(widget, expand_h=True, proportion_v=1.)
-        button = DirectButton(parent=gui_root, text="Item2", text_scale=20,
-            borderWidth=(2, 2))
+
+        def toggle_column2_proportion():
+
+            if sizer.has_column_proportion(2):
+                sizer.clear_column_proportion(2)
+            else:
+                sizer.set_column_proportion(2, 1.)
+
+            gui.layout()
+
+        text = "Toggle explicit column proportion"
+        button = DirectButton(parent=gui_root, text=text, text_wordwrap=5.,
+            text_scale=15, borderWidth=(2, 2), command=toggle_column2_proportion)
         widget = Widget(button)
         sizer.add(widget, alignment_h="right", alignment_v="center_v")
 
-        def remove_button():
+        def toggle_new_button():
 
-            sizer.remove_item(widget_to_remove.sizer_item, destroy=True)
+            if self.new_widget:
+                sizer.remove_item(self.new_widget.sizer_item, destroy=True)
+                self.new_widget = None
+                toggler["text"] = "Insert n00b button"
+                toggler.resetFrameSize()
+            else:
+                text = ("Hi, I'm new!", "But how?", "What's up?", "*Snooore*")
+                button = DirectButton(parent=gui_root, text=text, text_scale=20,
+                    borderWidth=(2, 2))
+                self.new_widget = Widget(button)
+                sizer.add(self.new_widget, alignment_h="center_h", alignment_v="bottom",
+                index=-1)
+                toggler["text"] = "Remove n00b button"
+                toggler.resetFrameSize()
+
+            toggler_widget.resetFrameSize()
             gui.layout()
 
-        button = DirectButton(parent=gui_root, text="Another item: Item3", text_scale=20,
-            borderWidth=(2, 2))
-        widget = Widget(button)
-        sizer.add(widget, expand_h=True, alignment_v="center_v")
-        button = DirectButton(parent=gui_root, text="Remove me", text_scale=20,
-            borderWidth=(2, 2), command=remove_button)
-        widget_to_remove = Widget(button)
-        sizer.add(widget_to_remove, alignment_h="center_h", alignment_v="bottom")
-        button = DirectButton(parent=gui_root, text="Item5", text_scale=20,
-            borderWidth=(2, 2))
+        toggler = DirectButton(parent=gui_root, text="Insert n00b button", text_scale=20,
+            textMayChange=True, borderWidth=(2, 2), command=toggle_new_button)
+        toggler_widget = Widget(toggler)
+        sizer.add(toggler_widget, expand_h=True, alignment_v="center_v")
+        self.new_widget = None
+
+        def toggle_row_proportion():
+
+            if sizer.has_row_proportion(1):
+                sizer.clear_row_proportion(1)
+            else:
+                sizer.set_row_proportion(1, 3.)
+
+            gui.layout()
+
+        text = "Toggle explicit row proportion"
+        button = DirectButton(parent=gui_root, text=text, text_wordwrap=5.,
+            text_scale=20, borderWidth=(2, 2), command=toggle_row_proportion)
         widget = Widget(button)
         sizer.add(widget, alignment_h="center_h", proportion_v=2.)
+        # set an explicit vertical proportion for the bottom sizer row; it overrides
+        # the vertical proportions set on any item added to that row (in this case,
+        # the proportion set on the last added button)
+        sizer.set_row_proportion(1, 3.)
 
         # add a horizontally expanding status bar
         status_text = "GUI ready"

@@ -248,7 +248,7 @@ class Sizer:
         elif key == "grow_dir":
             return self.grow_dir
         elif key == "default_size":
-            return self._default_size
+            return self.default_size
 
     def __setitem__(self, key, value):
 
@@ -257,7 +257,7 @@ class Sizer:
         elif key == "grow_dir":
             self.grow_dir = value
         elif key == "default_size":
-            self.set_default_size(value)
+            self.default_size = value
 
     @property
     def type(self):
@@ -310,22 +310,10 @@ class Sizer:
 
         self.set_min_size_stale()
 
-    def get_item_index(self, item):
-
-        return self._items.index(item)
-
-    def get_item(self, index):
-
-        return self._items[index]
-
     @property
     def items(self):
 
         return self._items
-
-    def get_item_count(self):
-
-        return len(self._items)
 
     def get_widgets(self, include_children=True):
 
@@ -361,11 +349,13 @@ class Sizer:
 
         self._pos = pos
 
-    def get_default_size(self):
+    @property
+    def default_size(self):
 
         return self._default_size
 
-    def set_default_size(self, size):
+    @default_size.setter
+    def default_size(self, size):
 
         w_d, h_d = self._default_size = size
         w_min, h_min = self._min_size
@@ -638,7 +628,7 @@ class GridDataItem:
                  alignment_h, alignment_v, borders, sizer_item):
 
         self._data = [obj, proportion_h, proportion_v, expand_h, expand_v,
-                      alignment_h, alignment_v, borders, sizer_item]
+                      alignment_h, alignment_v, borders, None, False, sizer_item]
 
     def set_sizer_item(self, sizer_item):
 
@@ -661,6 +651,7 @@ class GridSizer(Sizer):
         self._gaps = {"horizontal": gap_h, "vertical": gap_v}
         self._sizers = {"horizontal": Sizer("horizontal"), "vertical": Sizer("vertical")}
         self._data_items = []
+        self._proportions = {"row": {}, "column": {}}
 
     def destroy(self):
 
@@ -672,6 +663,7 @@ class GridSizer(Sizer):
         self._sizers["vertical"].destroy()
         self._sizers = {}
         self._data_items = []
+        self._proportions = {"row": {}, "column": {}}
 
     def clear(self, destroy_items=False):
 
@@ -682,6 +674,7 @@ class GridSizer(Sizer):
         self._sizers["horizontal"].clear(destroy_items)
         self._sizers["vertical"].clear(destroy_items)
         self._data_items = []
+        self._proportions = {"row": {}, "column": {}}
 
     def __add_to_horizontal_sizer(self, obj, proportion=0., borders=None, index=None):
 
@@ -701,7 +694,7 @@ class GridSizer(Sizer):
                 sizer.add(column_sizer, expand=True)
             else:
                 column_sizer = column_sizer_items[-1].object
-                if column_sizer.get_item_count() == self._max_rows * 2 - 1:
+                if len(column_sizer.items) == self._max_rows * 2 - 1:
                     sizer.add((gap, 0))
                     column_sizer = Sizer("vertical")
                     sizer.add(column_sizer, expand=True)
@@ -719,12 +712,19 @@ class GridSizer(Sizer):
         column_sizer.add(obj, borders=borders)
 
         column_sizer_item = column_sizer.sizer_item
-        column_proportion = column_sizer_item.proportion
-        # the column sizer should have the largest of the horizontal proportions that were passed
-        # for its items; all of its items that should resize proportionately in the horizontal
-        # direction will end up with the same width, as if they were all given that same largest
-        # proportion
-        column_proportion = max(column_proportion, proportion)
+        proportions = self._proportions["column"]
+        column_index = column_sizer_items[::2].index(column_sizer_item)
+
+        if column_index in proportions:
+            column_proportion = proportions[column_index]
+        else:
+            column_proportion = column_sizer_item.proportion
+            # the column sizer should have the largest of the horizontal proportions
+            # that were passed for its items; all of its items that should resize
+            # proportionately in the horizontal direction will end up with the same
+            # width, as if they were all given that same largest proportion
+            column_proportion = max(column_proportion, proportion)
+
         column_sizer_item.proportion = column_proportion
 
     def __add_to_vertical_sizer(self, obj, proportion_h=0., proportion_v=0.,
@@ -760,7 +760,7 @@ class GridSizer(Sizer):
                 sizer.add(row_sizer, expand=True)
             else:
                 row_sizer = row_sizer_items[-1].object
-                if row_sizer.get_item_count() == self._max_cols * 2 - 1:
+                if len(row_sizer.items) == self._max_cols * 2 - 1:
                     sizer.add((0, gap_v))
                     row_sizer = Sizer("horizontal")
                     sizer.add(row_sizer, expand=True)
@@ -773,11 +773,19 @@ class GridSizer(Sizer):
             sizer.add(row_sizer, expand=True)
 
         row_sizer_item = row_sizer.sizer_item
-        row_proportion = row_sizer_item.proportion
-        # the row sizer should have the largest of the vertical proportions that were passed for
-        # its items; all of its items that should resize proportionately in the vertical direction
-        # will end up with the same height, as if they were all given that same largest proportion
-        row_proportion = max(row_proportion, proportion_v)
+        proportions = self._proportions["row"]
+        row_index = row_sizer_items[::2].index(row_sizer_item)
+
+        if row_index in proportions:
+            row_proportion = proportions[row_index]
+        else:
+            row_proportion = row_sizer_item.proportion
+            # the row sizer should have the largest of the vertical proportions
+            # that were passed for its items; all of its items that should resize
+            # proportionately in the vertical direction will end up with the same
+            # height, as if they were all given that same largest proportion
+            row_proportion = max(row_proportion, proportion_v)
+
         row_sizer_item.proportion = row_proportion
 
         if row_sizer.items:
@@ -793,8 +801,9 @@ class GridSizer(Sizer):
 
         return inner_cell_sizer.add(obj, proportion, expand, alignment_v, borders)
 
-    def add(self, obj, proportion_h=0., proportion_v=0., expand_h=False, expand_v=False,
-            alignment_h="", alignment_v="", borders=None, _old_item=None):
+    def add(self, obj, proportion_h=0., proportion_v=0., expand_h=False,
+            expand_v=False, alignment_h="", alignment_v="", borders=None,
+            index=None, rebuild=True, _old_item=None):
 
         grow_dir = "vertical" if self._max_rows == 0 else "horizontal"
 
@@ -805,31 +814,45 @@ class GridSizer(Sizer):
         else:
             self.__add_to_horizontal_sizer(obj, proportion_h)
 
-        index = self._sizers[grow_dir].items[-1].object.get_item_count() - 1
+        subsizer_index = len(self._sizers[grow_dir].items[-1].object.items) - 1
 
         if grow_dir == "vertical":
-            self.__add_to_horizontal_sizer(obj, proportion_h, borders, index)
+            self.__add_to_horizontal_sizer(obj, proportion_h, borders, subsizer_index)
         else:
             item = self.__add_to_vertical_sizer(obj, proportion_h, proportion_v,
-                                                expand_h, expand_v,
-                                                alignment_h, alignment_v, borders, index)
+                                                expand_h, expand_v, alignment_h,
+                                                alignment_v, borders, subsizer_index)
 
         if item.type != "size":
             obj.sizer_item = item
 
         if _old_item:
-            index = self._items.index(_old_item)
-            self._items[index] = item
-            self._data_items[index].set_sizer_item(item)
-        else:
+            item_index = self._items.index(_old_item)
+            self._items[item_index] = item
+            self._data_items[item_index].set_sizer_item(item)
+        elif index is None:
             self._items.append(item)
             self._data_items.append(GridDataItem(obj, proportion_h, proportion_v,
                                                  expand_h, expand_v, alignment_h,
                                                  alignment_v, borders, item))
+        else:
+            self._items.insert(index, item)
+            self._data_items.insert(index, GridDataItem(obj, proportion_h, proportion_v,
+                                                        expand_h, expand_v, alignment_h,
+                                                        alignment_v, borders, item))
+            if rebuild:
+                self.rebuild()
 
         Sizer.set_min_size_stale(self)
 
     def rebuild(self):
+        """
+        Destroy the sub-sizers used for this grid sizer and move its items
+        to new sub-sizers. This is necessary after any change that affects
+        previously added items (a notable exception is appending - as
+        opposed to inserting - items, which does not require a rebuild).
+
+        """
 
         sizer = self._sizers["horizontal"]
 
@@ -843,7 +866,7 @@ class GridSizer(Sizer):
 
         for row_item in sizer.items[::2]:
             for item in row_item.object.items[::2]:
-                item.object.get_item(0).object.get_item(0).preserve_object()
+                item.object.items[0].object.items[0].preserve_object()
 
         sizer.destroy()
 
@@ -868,6 +891,146 @@ class GridSizer(Sizer):
         if rebuild:
             self.rebuild()
 
+    def has_row_proportion(self, index):
+        """
+        Check whether a vertical proportion has been explicitly set for the
+        row with the given index.
+
+        """
+
+        return index in self._proportions["row"]
+
+    def get_row_proportion(self, index):
+        """
+        Return the vertical proportion that has been explicitly set for the
+        row with the given index.
+        It is an error to call this if has_row_proportion returns False.
+
+        """
+
+        assert self.has_row_proportion(index)
+        return self._proportions["row"][index]
+
+    def set_row_proportion(self, index, proportion, rebuild=True):
+        """
+        Explicitly set a vertical proportion for the row with the given
+        index. It will override the vertical proportions set on any item
+        added to that row.
+
+        """
+
+        self._proportions["row"][index] = proportion
+
+        if rebuild:
+            self.rebuild()
+
+    def clear_row_proportion(self, index, rebuild=True):
+        """
+        Remove the vertical proportion that has been explicitly set for the
+        row with the given index. This undoes the effect of a previous call
+        to set_row_proportion for that row; its new vertical proportion
+        will be the largest one passed for its items.
+
+        """
+
+        if index not in self._proportions["row"]:
+            return
+
+        del self._proportions["row"][index]
+
+        if rebuild:
+            self.rebuild()
+
+    def clear_row_proportions(self, rebuild=True):
+        """
+        Remove the vertical proportions that were explicitly set for any of
+        the rows of this sizer.
+        See clear_row_proportion.
+
+        """
+
+        self._proportions["row"].clear()
+
+        if rebuild:
+            self.rebuild()
+
+    def has_column_proportion(self, index):
+        """
+        Check whether a horizontal proportion has been explicitly set for the
+        column with the given index.
+
+        """
+
+        return index in self._proportions["column"]
+
+    def get_column_proportion(self, index):
+        """
+        Return the horizontal proportion that has been explicitly set for the
+        column with the given index.
+        It is an error to call this if has_column_proportion returns False.
+
+        """
+
+        assert self.has_column_proportion(index)
+        return self._proportions["column"][index]
+
+    def set_column_proportion(self, index, proportion, rebuild=True):
+        """
+        Explicitly set a horizontal proportion for the column with the given
+        index. It will override the horizontal proportions set on any item
+        added to that column.
+
+        """
+
+        self._proportions["column"][index] = proportion
+
+        if rebuild:
+            self.rebuild()
+
+    def clear_column_proportion(self, index, rebuild=True):
+        """
+        Remove the horizontal proportion that has been explicitly set for the
+        column with the given index. This undoes the effect of a previous call
+        to set_column_proportion for that column; its new horizontal proportion
+        will be the largest one passed for its items.
+
+        """
+
+        if index not in self._proportions["column"]:
+            return
+
+        del self._proportions["column"][index]
+
+        if rebuild:
+            self.rebuild()
+
+    def clear_column_proportions(self, rebuild=True):
+        """
+        Remove the horizontal proportions that were explicitly set for any of
+        the columns of this sizer.
+        See clear_column_proportion.
+
+        """
+
+        self._proportions["column"].clear()
+
+        if rebuild:
+            self.rebuild()
+
+    def clear_proportions(self, rebuild=True):
+        """
+        Remove the proportions that were explicitly set for any of the rows
+        and columns of this sizer.
+        See clear_row_proportion and clear_column_proportion.
+
+        """
+
+        self._proportions["row"].clear()
+        self._proportions["column"].clear()
+
+        if rebuild:
+            self.rebuild()
+
     def get_widgets(self, include_children=True):
 
         return self._sizers["horizontal"].get_widgets(include_children)
@@ -878,12 +1041,18 @@ class GridSizer(Sizer):
 
         self._sizers["vertical"].set_pos(pos)
 
-    def set_default_size(self, size):
+    @property
+    def default_size(self):
 
-        Sizer.set_default_size(self, size)
+        return Sizer.default_size.fget(self)
 
-        self._sizers["horizontal"].set_default_size(size)
-        self._sizers["vertical"].set_default_size(size)
+    @default_size.setter
+    def default_size(self, size):
+
+        Sizer.default_size.fset(self, size)
+
+        self._sizers["horizontal"].default_size = size
+        self._sizers["vertical"].default_size = size
 
     def set_min_size_stale(self, stale=True):
 
@@ -915,7 +1084,7 @@ class GridSizer(Sizer):
 
         for row_sizer in row_sizers:
             for cell_sizer_item, w in zip(row_sizer.items[::2], widths):
-                cell_sizer_item.object.set_default_size((w, 0))
+                cell_sizer_item.object.default_size = (w, 0)
 
         sizer_v.set_size(size, force)
 
