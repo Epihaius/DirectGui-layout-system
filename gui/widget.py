@@ -1,5 +1,6 @@
 # Author: Epihaius
 # Date: 2019-09-23
+# Last revision: 2020-10-08
 #
 # This module contains wrapper classes for the DirectGui widgets.
 
@@ -18,8 +19,8 @@ class Widget:
         self._type = "widget"
         self.dgui_obj = dgui_obj
         self._sizer = None
-        # the SizerItem this widget is tracked by
-        self.sizer_item = None
+        # the SizerCell this widget is inside of
+        self.sizer_cell = None
 
         l, r, b, t = self._bounds = self._get_bounds(dgui_obj)
 
@@ -43,7 +44,7 @@ class Widget:
             self._sizer.destroy()
             self._sizer = None
 
-        self.sizer_item = None
+        self.sizer_cell = None
         self.dgui_obj.destroy()
         self.dgui_obj = None
 
@@ -114,8 +115,8 @@ class Widget:
 
         if self._sizer:
             self._sizer.set_min_size_stale()
-        elif self.sizer_item:
-            self.sizer_item.sizer.set_min_size_stale()
+        elif self.sizer_cell:
+            self.sizer_cell.sizer.set_min_size_stale()
 
     def get_size(self):
 
@@ -216,21 +217,21 @@ class ScrolledListWidget(Widget):
         self.sizer = sizer
 
         dec_sizer = Sizer("horizontal")
-        sizer.add(dec_sizer, expand=True)
+        sizer.add(dec_sizer)
         widget = Widget(dgui_obj.decButton)
-        dec_sizer.add((0, 0), proportion=.5)
-        dec_sizer.add(widget, proportion=scrollbtn_proportion, borders=scrollbtn_borders)
-        dec_sizer.add((0, 0), proportion=.5)
+        dec_sizer.add((0, 0), proportions=(.5, 0.))
+        dec_sizer.add(widget, (scrollbtn_proportion, 0.), borders=scrollbtn_borders)
+        dec_sizer.add((0, 0), proportions=(.5, 0.))
 
         frame_widget = Widget(dgui_obj.itemFrame)
-        sizer.add(frame_widget, expand=True, proportion=1., borders=itemframe_borders)
+        sizer.add(frame_widget, proportions=(1., 1.), borders=itemframe_borders)
 
         inc_sizer = Sizer("horizontal")
-        sizer.add(inc_sizer, expand=True)
+        sizer.add(inc_sizer)
         widget = Widget(dgui_obj.incButton)
-        inc_sizer.add((0, 0), proportion=.5)
-        inc_sizer.add(widget, proportion=scrollbtn_proportion, borders=scrollbtn_borders)
-        inc_sizer.add((0, 0), proportion=.5)
+        inc_sizer.add((0, 0), proportions=(.5, 0.))
+        inc_sizer.add(widget, (scrollbtn_proportion, 0.), borders=scrollbtn_borders)
+        inc_sizer.add((0, 0), proportions=(.5, 0.))
 
         self._list_sizer = sizer = Sizer("vertical")
         frame_widget.sizer = sizer
@@ -239,17 +240,18 @@ class ScrolledListWidget(Widget):
         sizer.add((0, dgui_obj["forceHeight"]))
         l, r = margins
         borders = (l, r, 0, 0)
-        sizer.add(widget, expand=True, borders=borders)
+        sizer.add(widget, proportions=(1., 0.), borders=borders)
         sizer.add((0, dgui_obj["forceHeight"]))
 
         self._widgets = {}
         self._item_sizer = Sizer("vertical")
+        self._item_sizer.set_column_proportion(0, 1.)
 
         # provide camelCase aliases for DirectGui-like method names
         self.addItem = self.add_item
         self.removeItem = self.remove_item
 
-    def add_item(self, item, refresh=True, expand=True):
+    def add_item(self, item, refresh=False, expand=True):
 
         w_min, h_min = self._item_sizer.min_size
         self.dgui_obj.addItem(item, refresh)
@@ -257,7 +259,8 @@ class ScrolledListWidget(Widget):
         item.reparent_to(item_parent)
         widget = Widget(item)
         self._widgets[item] = widget
-        self._item_sizer.add(widget, expand=expand, index=0)
+        alignments = ("expand" if expand else "min", "min")
+        self._item_sizer.add(widget, alignments=alignments, index=0)
         max_width, _ = size = self._item_sizer.update_min_size()
         self._item_sizer.update(size)
         w, h = widget.get_size()
@@ -270,15 +273,15 @@ class ScrolledListWidget(Widget):
             self._root_widget._bounds = (-w_, w_, 0, 0)
             self._root_widget.min_size = (w, 0)
 
-    def remove_item(self, item, refresh=True):
+    def remove_item(self, item, refresh=False):
 
         item.get_parent().detach_node()
         w_min, h_min = self._item_sizer.min_size
         widget = self._widgets[item]
-        sizer_item = widget.sizer_item
-        widget.sizer_item = None
+        sizer_cell = widget.sizer_cell
+        widget.sizer_cell = None
         del self._widgets[item]
-        self._item_sizer.remove_item(sizer_item)
+        self._item_sizer.remove_cell(sizer_cell)
         max_width, _ = size = self._item_sizer.update_min_size()
         self._item_sizer.update(size)
 
@@ -346,8 +349,8 @@ class ScrolledFrameWidget(Widget):
             w_min += int(ceil(border_w * 2))
             h_min += int(ceil(border_h * 2))
 
-        if self.sizer_item:
-            self.sizer_item.sizer.set_min_size_stale()
+        if self.sizer_cell:
+            self.sizer_cell.sizer.set_min_size_stale()
 
         return (w_min, h_min)
 
