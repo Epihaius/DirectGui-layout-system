@@ -2,6 +2,7 @@
 
 # Author: Epihaius
 # Date: 2019-10-04
+# Last revision: 2020-10-08
 #
 # This is a basic example of how to use the sizer-based GUI system.
 # It specifically showcases how to handle a DirectScrolledFrame.
@@ -34,57 +35,65 @@ class MyApp:
             text_scale=20, borderWidth=(6, 6), relief=DGG.SUNKEN)
         widget = Widget(label)
         borders = (10, 10, 20, 10)
-        gui.sizer.add(widget, expand=True, borders=borders)
+        # by default, the title bar will take up all of the width and height of its
+        # cell (the default value for the `alignments` parameter of the `Sizer.add`
+        # method is `("expand", "expand")`), but the cell itself still needs to be
+        # able to take up the entire width of the window; this is done by setting
+        # the horizontal proportion (which gets applied to the cell's column) to a
+        # value bigger than zero
+        gui.sizer.add(widget, proportions=(1., 0.), borders=borders)
 
         # add a horizontally growable sizer that will be expanded horizontally
         self.frame_area_sizer = sizer = Sizer("horizontal")
         borders = (10, 10, 20, 10)
-        gui.sizer.add(sizer, expand=True, borders=borders)
+        gui.sizer.add(sizer, proportions=(1., 0.), borders=borders)
 
-        # add a vertically growable subsizer to the previous sizer
-        btn_sizer = Sizer("vertical")
+        # add a vertically growable subsizer to the previous sizer;
+        # set the vertical gap between each two of its cells to 10 pixels
+        # (this is a more convenient alternative to setting the same borders
+        # for all but the last of its cells, i.e. `(0, 0, 10, 0)`)
+        btn_sizer = Sizer("vertical", gaps=(0, 10))
         borders = (0, 20, 0, 0)
         sizer.add(btn_sizer, borders=borders)
 
         # add horizontally expanding buttons to the subsizer;
         # they will have the same width, determined by the initially largest button
-        borders = (0, 0, 10, 0)
         text = "Add button to frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=20,
             borderWidth=(2, 2), command=self.__add_button)
         widget = Widget(button)
-        btn_sizer.add(widget, expand=True, borders=borders)
+        btn_sizer.add(widget)
         text = "Add checkbutton to frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=20,
             borderWidth=(2, 2), command=self.__add_checkbutton)
         widget = Widget(button)
-        btn_sizer.add(widget, expand=True, borders=borders)
+        btn_sizer.add(widget)
         text = "Add radiobuttons to frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=20,
             borderWidth=(2, 2), command=self.__add_radiobuttons)
         widget = Widget(button)
-        btn_sizer.add(widget, expand=True, borders=borders)
+        btn_sizer.add(widget)
         text = "Add slider to frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=20,
             borderWidth=(2, 2), command=self.__add_slider)
         widget = Widget(button)
-        btn_sizer.add(widget, expand=True, borders=borders)
+        btn_sizer.add(widget)
         text = "Add sub-layout to frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=20,
             borderWidth=(2, 2), command=self.__add_layout)
         widget = Widget(button)
-        btn_sizer.add(widget, expand=True)
+        btn_sizer.add(widget)
         # add vertical space with a fixed size
-        btn_sizer.add((0, 50))
+        btn_sizer.add((0, 30))
         text = "Destroy frame"
         button = DirectButton(parent=gui_root, text=text, text_scale=25,
             textMayChange=True, borderWidth=(3, 3), command=self.__toggle_frame)
         self.frame_toggle_button = widget = Widget(button)
-        btn_sizer.add(widget, expand=True)
+        btn_sizer.add(widget)
 
         # add some horizontally stretching space, so that widgets added after it
         # will be pushed to the right
-        sizer.add((0, 0), proportion=1.)
+        sizer.add((0, 0), proportions=(1., 0.))
 
         self.has_frame = False
         # add a frame resizable in both directions and taking up two thirds of
@@ -92,18 +101,12 @@ class MyApp:
         # used for the frame and the stretching space that was previously added)
         self.__toggle_frame(update_layout=False)
 
-        # add some vertically stretching space to the GUI, so that widgets added
-        # after it will be pushed downwards
-        gui.sizer.add((0, 0), proportion=1.)
-
-        # add a non-resizing input field, centered horizontally
+        # add a non-resizing input field, centered horizontally and vertically within
+        # its cell, which itself is assigned all of the space available to it, by
+        # setting its proportions to 1.0
         field = DirectEntry(parent=gui_root, text_scale=20, focus=1)
         widget = Widget(field)
-        gui.sizer.add(widget, alignment="center_h")
-
-        # add another vertically stretching space with the same proportion, to keep
-        # the input field centered vertically within the available vertical space
-        gui.sizer.add((0, 0), proportion=1.)
+        gui.sizer.add(widget, proportions=(1., 1.), alignments=("center", "center"))
 
         # add a horizontally expanding status bar
         status_text = "GUI ready and awaiting input"
@@ -112,7 +115,7 @@ class MyApp:
             text_align=TextNode.A_left)
         widget = Widget(label)
         borders = (10, 10, 10, 20)
-        gui.sizer.add(widget, expand=True, borders=borders)
+        gui.sizer.add(widget, proportions=(1., 0.), borders=borders)
 
         # let the GUI system create the layout
         gui.layout()
@@ -133,7 +136,7 @@ class MyApp:
                 autoHideScrollBars=True, frameColor=(.5, .6, .7, 1.), scrollBarWidth=20,
                 borderWidth=(3, 3), relief=DGG.RIDGE)
             self.frame_widget = widget = ScrolledFrameWidget(frame, "vertical")
-            self.frame_area_sizer.add(widget, expand=True, proportion=2.)
+            self.frame_area_sizer.add(widget, proportions=(2., 1.))
             self.frame = frame = frame.getCanvas()
             # all child widgets of a scrolled frame need to be added to its canvas sizer
             # in order to manage their layout
@@ -145,24 +148,24 @@ class MyApp:
                 text_scale=20, text_align=TextNode.A_right)
             widget = Widget(label)
             borders = (10, 10, 20, 10)
-            frame_sizer.add(widget, expand=True, borders=borders)
+            frame_sizer.add(widget, proportions=(1., 0.), borders=borders)
 
             # add some vertically stretching space to the frame, so that widgets added
             # after it will be pushed downwards
-            frame_sizer.add((0, 0), proportion=1.)
+            frame_sizer.add((0, 0), proportions=(0., 1.))
 
             # add a non-resizing, right-aligned button to the frame
             text = "Button in frame "
             button = DirectButton(parent=frame, text=text, text_scale=20, borderWidth=(2, 2))
             widget = Widget(button)
             borders = (0, 10, 10, 20)
-            frame_sizer.add(widget, alignment="right", borders=borders)
+            frame_sizer.add(widget, alignments=("max", "min"), borders=borders)
             self.frame_toggle_button.dgui_obj["text"] = "Destroy frame"
 
         else:
 
             # remove the frame, destroying it and all of its child widgets
-            self.frame_area_sizer.remove_item(self.frame_widget.sizer_item, destroy=True)
+            self.frame_area_sizer.remove_cell(self.frame_widget.sizer_cell, destroy=True)
             self.frame = frame = None
             # make the button text very long to see how it affects the layout
             text = "Create a new frame to the right"
@@ -180,7 +183,7 @@ class MyApp:
 
         def remove_button():
 
-            self.frame_sizer.remove_item(widget.sizer_item, destroy=True)
+            self.frame_sizer.remove_cell(widget.sizer_cell, destroy=True)
             self.gui.layout()
 
         button = DirectButton(parent=self.frame, text=("Feel free to remove me", "Goodbye!",
@@ -189,7 +192,7 @@ class MyApp:
         widget = Widget(button)
         borders = (10, 10, 10, 10)
         # add the button to the frame, below the right-aligned text label, using index=1
-        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+        self.frame_sizer.add(widget, proportions=(1., 0.), borders=borders, index=1)
 
         # update the GUI layout
         self.gui.layout()
@@ -205,7 +208,7 @@ class MyApp:
         widget = Widget(btn)
         borders = (10, 10, 10, 10)
         # add the checkbutton to the frame, below the right-aligned text label, using index=1
-        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+        self.frame_sizer.add(widget, proportions=(1., 0.), borders=borders, index=1)
 
         # update the GUI layout
         self.gui.layout()
@@ -229,7 +232,7 @@ class MyApp:
         for button in reversed(buttons):
             widget = Widget(button)
             # add the radiobuttons to the frame, below the right-aligned text label, using index=1
-            self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+            self.frame_sizer.add(widget, proportions=(1., 0.), borders=borders, index=1)
             button.setOthers(buttons)
 
         # update the GUI layout
@@ -246,7 +249,7 @@ class MyApp:
         widget = Widget(slider)
         borders = (10, 10, 10, 10)
         # add the slider to the frame, below the right-aligned text label, using index=1
-        self.frame_sizer.add(widget, expand=True, borders=borders, index=1)
+        self.frame_sizer.add(widget, proportions=(1., 0.), borders=borders, index=1)
 
         # update the GUI layout
         self.gui.layout()
@@ -258,33 +261,32 @@ class MyApp:
 
         def remove_sizer():
 
-            self.frame_sizer.remove_item(subsizer.sizer_item, destroy=True)
+            self.frame_sizer.remove_cell(subsizer.sizer_cell, destroy=True)
             self.gui.layout()
 
         # create a sizer to manage a sub-layout that can be as complex as desired
         subsizer = Sizer("horizontal")
         # add the sizer managing the sub-layout to the frame, below the right-aligned
         # text label, using index=1
-        self.frame_sizer.add(subsizer, expand=True, index=1, borders=(10, 10, 10, 10))
+        self.frame_sizer.add(subsizer, proportions=(1., 0.), borders=(10, 10, 10, 10), index=1)
 
         # Build a sub-layout of any complexity
 
         v_sizer = Sizer("vertical")
-        subsizer.add(v_sizer, expand=True)
+        subsizer.add(v_sizer)
         button = DirectButton(parent=self.frame, text="Button", borderWidth=(6, 6),
             text_scale=20)
         widget = Widget(button)
-        v_sizer.add(widget, expand=True, borders=(0, 0, 10, 0))
+        v_sizer.add(widget, borders=(0, 0, 10, 0))
         button = DirectButton(parent=self.frame, text="Destroy sub-layout",
             borderWidth=(6, 6), text_scale=20, text_wordwrap=5., command=remove_sizer)
         widget = Widget(button)
-        v_sizer.add(widget, expand=True)
-        subsizer.add((0, 0), proportion=1.)
+        v_sizer.add(widget)
         button = DirectButton(parent=self.frame, text="Centered button",
             borderWidth=(6, 6), text_scale=20, text_wordwrap=5.)
         widget = Widget(button)
-        subsizer.add(widget, alignment="center_v", proportion=1., borders=(5, 5, 0, 0))
-        subsizer.add((0, 0), proportion=1.)
+        subsizer.add(widget, proportions=(1., 0.), alignments=("center", "center"),
+            borders=(5, 5, 0, 0))
 
         # update the GUI layout
         self.gui.layout()
