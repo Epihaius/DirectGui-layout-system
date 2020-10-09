@@ -142,8 +142,8 @@ class MyApp:
         widget = Widget(button)
         sizer.add(widget, proportions=(0., 2.), alignments=("center", "expand"))
         # set an explicit vertical proportion for the bottom sizer row; it overrides
-        # the vertical proportions set when adding any objects to that row (in this
-        # case, the proportion set when the last button was added)
+        # the vertical proportions associated with any cells of that row (in this
+        # case, the proportion associated with the cell containing the last button added)
         sizer.set_row_proportion(1, 3.)
 
         # add a horizontally expanding status bar
