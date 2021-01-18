@@ -1,6 +1,6 @@
 # Author: Epihaius
 # Date: 2019-09-23
-# Last revision: 2020-10-08
+# Last revision: 2021-01-18
 #
 # This module contains classes to implement a "sizer" system, the purpose of
 # which is to maintain the layout of widgets when resizing the window.
@@ -15,7 +15,7 @@ class SizerCell:
         self._sizer = sizer
         self._obj = obj
         self._type = obj_type
-        self.proportions = proportions if proportions else (0., 0.)
+        self.proportions = proportions if proportions else (-1., -1.)
         self.alignments = alignments if alignments else ("expand", "expand")
         l, r, b, t = self._borders = borders if borders else (0, 0, 0, 0)
         self._obj_offset = (l, t)
@@ -38,7 +38,7 @@ class SizerCell:
 
         self._obj = None
         self._type = ""
-        self.proportions = (0., 0.)
+        self.proportions = (-1., -1.)
         self.alignments = ("expand", "expand")
         self._borders = (0, 0, 0, 0)
         self._obj_offset = (0, 0)
@@ -86,6 +86,11 @@ class SizerCell:
         return self._obj
 
     @property
+    def object_offset(self):
+
+        return self._obj_offset
+
+    @property
     def borders(self):
 
         return self._borders
@@ -95,11 +100,6 @@ class SizerCell:
 
         l, r, b, t = self._borders = borders if borders else (0, 0, 0, 0)
         self._obj_offset = (l, t)
-
-    @property
-    def object_offset(self):
-
-        return self._obj_offset
 
     @property
     def min_size(self):
@@ -166,6 +166,7 @@ class SizerCell:
 class Sizer:
 
     _count = 0
+    _global_default_proportions = (0., 0.)
 
     def __init__(self, prim_dir, prim_limit=0, gaps=(0, 0)):
 
@@ -179,6 +180,7 @@ class Sizer:
         # (vertical growth)
         self.prim_limit = prim_limit
         self._gaps = [gaps[0], gaps[1]]
+        self._default_proportions = (-1., -1.)
         self._proportions = [{}, {}]
         self._pos = (0, 0)
         # minimum size without any contents
@@ -348,16 +350,6 @@ class Sizer:
 
         return widgets
 
-    def get_pos(self):
-
-        x, y = self._pos
-
-        return (x, y)
-
-    def set_pos(self, pos):
-
-        self._pos = pos
-
     @property
     def default_size(self):
 
@@ -476,6 +468,37 @@ class Sizer:
 
         return self._min_size
 
+    @staticmethod
+    def get_global_default_proportions():
+
+        return Sizer._global_default_proportions
+
+    @staticmethod
+    def set_global_default_proportions(column_proportion=0., row_proportion=0.):
+        """
+        Set the proportions to be applied to *any* sizer's columns and rows when
+        there is no explicitly set proportion and no proportions associated
+        with any cells for those columns and/or rows.
+
+        """
+
+        Sizer._global_default_proportions = (max(0., column_proportion),
+                                             max(0., row_proportion))
+
+    def get_default_proportions(self):
+
+        return self._default_proportions
+
+    def set_default_proportions(self, column_proportion=-1., row_proportion=-1.):
+        """
+        Set the proportions to be applied to *this* sizer's columns and rows
+        when there is no explicitly set proportion and no proportions associated
+        with any cells for those columns and/or rows.
+
+        """
+
+        self._default_proportions = (column_proportion, row_proportion)
+
     def __get_cell_proportions(self):
         """
         Return the largest horizontal and vertical proportions associated with
@@ -492,13 +515,13 @@ class Sizer:
         prim_dim = self.prim_dim
         prim_limit = len(self._cells) if self.prim_limit == 0 else self.prim_limit
         proportions = [None, None]
-        proportions[prim_dim] = prim_proportions = [0.] * len(self._cells[:prim_limit])
+        proportions[prim_dim] = prim_proportions = [-1.] * len(self._cells[:prim_limit])
         proportions[1-prim_dim] = sec_proportions = []
         cells = self._cells[:]
 
         while cells:
 
-            sec_proportion = 0.
+            sec_proportion = -1.
 
             for i, cell in enumerate(cells[:prim_limit]):
                 min_size = cell.update_min_size()
@@ -507,6 +530,13 @@ class Sizer:
 
             sec_proportions.append(sec_proportion)
             del cells[:prim_limit]
+
+        default_proportions = [p1 if p2 < 0. else p2 for p1, p2 in
+            zip(self._global_default_proportions, self._default_proportions)]
+        default_prim_p = default_proportions[prim_dim]
+        default_sec_p = default_proportions[1-prim_dim]
+        prim_proportions[:] = [default_prim_p if p < 0. else p for p in prim_proportions]
+        sec_proportions[:] = [default_sec_p if p < 0. else p for p in sec_proportions]
 
         return proportions
 
@@ -523,7 +553,7 @@ class Sizer:
         """
         Return the vertical proportion that has been explicitly set for the
         row with the given index.
-        It is an error to call this if has_row_proportion returns False.
+        It is an error to call this if `has_row_proportion(index)` returns False.
 
         """
 
@@ -546,7 +576,7 @@ class Sizer:
         """
         Remove the vertical proportion that has been explicitly set for the
         row with the given index. This undoes the effect of a previous call
-        to set_row_proportion for that row; its new vertical proportion
+        to `set_row_proportion` for that row; its new vertical proportion
         will be the largest one of those associated with its cells.
 
         """
@@ -558,7 +588,7 @@ class Sizer:
         """
         Remove the vertical proportions that were explicitly set for any of
         the rows of this sizer.
-        See clear_row_proportion.
+        See `clear_row_proportion`.
 
         """
 
@@ -577,7 +607,7 @@ class Sizer:
         """
         Return the horizontal proportion that has been explicitly set for the
         column with the given index.
-        It is an error to call this if has_column_proportion returns False.
+        It is an error to call this if `has_column_proportion(index)` returns False.
 
         """
 
@@ -600,7 +630,7 @@ class Sizer:
         """
         Remove the horizontal proportion that has been explicitly set for the
         column with the given index. This undoes the effect of a previous call
-        to set_column_proportion for that column; its new horizontal proportion
+        to `set_column_proportion` for that column; its new horizontal proportion
         will be the largest one of those associated with its cells.
 
         """
@@ -612,7 +642,7 @@ class Sizer:
         """
         Remove the horizontal proportions that were explicitly set for any of
         the columns of this sizer.
-        See clear_column_proportion.
+        See `clear_column_proportion`.
 
         """
 
@@ -622,7 +652,7 @@ class Sizer:
         """
         Remove the proportions that were explicitly set for any of the rows
         and columns of this sizer.
-        See clear_row_proportion and clear_column_proportion.
+        See `clear_row_proportion` and `clear_column_proportion`.
 
         """
 
@@ -655,6 +685,10 @@ class Sizer:
             tmp_size -= new_size
             p_sum -= proportion
 
+    def get_size(self):
+
+        return self._size
+
     def set_size(self, size, force=False):
 
         if force:
@@ -662,7 +696,7 @@ class Sizer:
             return
 
         width, height = size
-        w_min, h_min = size_min = list(self.min_size)
+        w_min, h_min = self.min_size
         self._size = (max(w_min, width), max(h_min, height))
 
         if not self._cells:
@@ -670,8 +704,7 @@ class Sizer:
 
         prim_dim = self.prim_dim
         prim_limit = len(self._cells) if self.prim_limit == 0 else self.prim_limit
-        w_min, h_min = size_min
-        size = [max(w_min, width), max(h_min, height)]
+        size = list(self._size)
 
         counts = [0, 0]
         counts[prim_dim] = len(self._cells[:prim_limit])
@@ -706,15 +739,21 @@ class Sizer:
             sec_index += 1
             del cells[:prim_limit]
 
-    def get_size(self):
+    def get_pos(self):
 
-        return self._size
+        x, y = self._pos
 
-    def update_positions(self, start_pos=(0, 0)):
+        return (x, y)
+
+    def set_pos(self, pos):
+
+        self._pos = pos
+
+    def update_positions(self):
 
         prim_dim = self.prim_dim
         prim_limit = len(self._cells) if self.prim_limit == 0 else self.prim_limit
-        start_pos = list(start_pos)
+        start_pos = list(self._pos)
         start_coord = start_pos[prim_dim]
 
         cells = self._cells[:]
@@ -742,7 +781,7 @@ class Sizer:
                 elif cell.type == "sizer":
 
                     obj.set_pos(pos)
-                    obj.update_positions(pos)
+                    obj.update_positions()
 
                 start_pos[prim_dim] += size[prim_dim] + gaps[prim_dim]
 
@@ -752,8 +791,8 @@ class Sizer:
 
     def update(self, size=None):
 
-        self.update_min_size()
-
-        if size:
-            self.set_size(size)
-            self.update_positions()
+        w, h = size if size else (0, 0)
+        w_min, h_min = self.update_min_size()
+        new_size = (max(w, w_min), max(h, h_min))
+        self.set_size(new_size)
+        self.update_positions()
